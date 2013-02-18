@@ -1,0 +1,11 @@
+{
+	"name": "giant-quadtree", 
+	"version": "0.1.0",
+	"main": "./dist/quadtree.js",
+	"ignore": [
+		"./src/**",
+		"node_modules",
+		"grunt.js",
+		"package.json"
+	]
+}
