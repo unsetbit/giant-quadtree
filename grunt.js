@@ -5,7 +5,7 @@ module.exports = function(grunt) {
       client: {
         src: './src/quadtree.js',
         dest: 'dist/quadtree-expanded.js',
-        exportedVariable: 'createQuadtree',
+        exportedVariable: 'Quadtree',
         exports: './src/quadtree.js'
       },
       clientExport: {

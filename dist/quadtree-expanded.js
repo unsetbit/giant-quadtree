@@ -1,4 +1,4 @@
-;createQuadtree = (function(){
+;Quadtree = (function(){
 var __m1 = function(module,exports){module.exports=exports;
 module.exports = Node;
 
@@ -324,12 +324,21 @@ var Node = __m1;
    		Retrieves a list of bounding boxes that share a node with the given bounds object.
 */
 
-module.exports = function(width, height){
-	var quadtree = new Quadtree(width, height);
-	return getApi(quadtree);
+var Quadtree = module.exports = function(width, height){
+	if(width){
+		this.width = width;
+		this.height = height? height : width;
+	}
+	
+	this.reset();
 };
 
-function getApi(quadtree){
+Quadtree.create = function(width, height){
+	var quadtree = new Quadtree(width, height);
+	return Quadtree.getApi(quadtree);
+};
+
+Quadtree.getApi = function(quadtree){
 	var api = {};
 	api.insert = quadtree.insert.bind(quadtree);
 	api.reset = quadtree.reset.bind(quadtree);
@@ -338,21 +347,18 @@ function getApi(quadtree){
 	api.prune = quadtree.prune.bind(quadtree);
 
 	return api;
-}
-
-function Quadtree(width){
-	if(width) this.width = width;
-	this.reset();
-}
+};
 
 Quadtree.prototype.width = 10000;
+Quadtree.prototype.height = 10000;
 
 Quadtree.prototype.reset = function(x, y){
 	x = x || 0;
 	y = y || 0;
 
 	var negHalfWidth = -(this.width / 2);
-	this.top = new Node(x + negHalfWidth, y + negHalfWidth, this.width, this.width);
+	var negHalfHeight = -(this.height / 2);
+	this.top = new Node(x + negHalfWidth, y + negHalfHeight, this.width, this.height);
 };
 
 Quadtree.prototype.insert = function(obj){

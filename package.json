@@ -1,6 +1,6 @@
 {
   "name": "giant-quadtree",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Infinite 2D collision detection",
   "main": "index.js",
   "dependencies": {},
