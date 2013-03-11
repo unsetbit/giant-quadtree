@@ -7,6 +7,10 @@ function Node(left, top, width, height, parent){
 	this.top = top;
 	this.width = width;
 	this.height = height;
+	this.right = this.left + this.width;
+	this.bottom = this.top + this.height;
+	this.isBase = (this.width / 2) < this.minimumSize;
+
 	this.parent = parent;
 }
 
@@ -15,7 +19,8 @@ Node.prototype.tr = void 0;
 Node.prototype.br = void 0;
 Node.prototype.bl = void 0;
 
-Node.prototype.OBJECT_LIMIT = 200;
+Node.prototype.objectLimit = 200;
+Node.prototype.minimumSize = 3000;
 
 Node.prototype.clear = function(){
 	this.objects = [];
@@ -228,9 +233,10 @@ Node.prototype.insert = function(obj){
 	} else {
 		objects = node.objects;
 		objects.push(obj);
+
 		index = 0;
 		length = objects.length;
-		if(length > node.OBJECT_LIMIT){
+		if(!this.isBase && length > node.objectLimit){
 			// Split if not already split
 			if(!node.tl) node.split();
 

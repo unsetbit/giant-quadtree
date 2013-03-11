@@ -3,15 +3,15 @@ module.exports = function(grunt) {
   grunt.initConfig({
     hug: {
       client: {
-        src: './src/quadtree.js',
+        src: './src/Quadtree.js',
         dest: 'dist/quadtree-expanded.js',
         exportedVariable: 'Quadtree',
-        exports: './src/quadtree.js'
+        exports: './src/Quadtree.js'
       },
       clientExport: {
-        src: './src/quadtree.js',
+        src: './src/Quadtree.js',
         dest: 'dist/quadtree-module.js',
-        exports: './src/quadtree.js'
+        exports: './src/Quadtree.js'
       }
     }, 
     min: {

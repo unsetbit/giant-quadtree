@@ -17,7 +17,7 @@ var Node = require("./Node.js");
    will grow in the direction the object was inserted in order to encapsulate it. This is
    similar to a node split, except in this case we create a parent node and assign the existing
    quadtree as a quadrant within it. This allows the quadtree to contain any object, regardless of
-   it's position in space.
+   its position in space.
 
    One function is exported which creates a quadtree given a width and height.
 
@@ -35,6 +35,7 @@ var Quadtree = module.exports = function(width, height){
 		this.width = width;
 		this.height = height? height : width;
 	}
+	window.q = this;
 	
 	this.reset();
 };
@@ -49,7 +50,6 @@ Quadtree.getApi = function(quadtree){
 	api.insert = quadtree.insert.bind(quadtree);
 	api.reset = quadtree.reset.bind(quadtree);
 	api.getObjects = quadtree.getObjects.bind(quadtree);
-	api.hasObject = quadtree.hasObject.bind(quadtree);
 	api.prune = quadtree.prune.bind(quadtree);
 
 	return api;
@@ -64,16 +64,190 @@ Quadtree.prototype.reset = function(x, y){
 
 	var negHalfWidth = -(this.width / 2);
 	var negHalfHeight = -(this.height / 2);
-	this.top = new Node(x + negHalfWidth, y + negHalfHeight, this.width, this.height);
+	this.top = new Node(x, y, this.width, this.height);
+//	this.top = new Node(x + negHalfWidth, y + negHalfHeight, this.width, this.height);
 };
 
 Quadtree.prototype.insert = function(obj){
 	this.top = this.top.insert(obj);
 };
 
+function isInNode(node, left, top, right, bottom){
+	return node.left <= left && node.top <= top && node.right >= right && node.bottom >= bottom;
+};
+
+function getContainingNodeHelper(left, top, right, bottom, node){
+	if(!node.tl) return node;
+
+	if(left < node.tr.left){
+		if(right < node.tr.left){
+			if(bottom < node.bl.top){
+				return getContainingNodeHelper(left, top, right, bottom, node.tl);
+			} else if(top > node.bl.top) {
+				return getContainingNodeHelper(left, top, right, bottom, node.bl);
+			}
+		}
+	} else {
+		if(bottom < node.br.top){
+			return getContainingNodeHelper(left, top, right, bottom, node.tr);
+		} else if(top > node.br.top) {
+			return getContainingNodeHelper(left, top, right, bottom, node.br);
+		}
+	}
+
+	return node;
+}
+
+Quadtree.prototype.getContainingNode = function(left, top, right, bottom, node){
+	if(left < this.top.left || 
+		top < this.top.top || 
+		right > this.top.right || 
+		bottom > this.top.bottom){
+		return;	
+	}
+
+	return getContainingNodeHelper(left, top, right, bottom, this.top);
+/*
+	node = node || this.top;
+	if(!node.tl) return node;
+
+	// If area fits in any node, recurse down the tree
+	if(isInNode(node.tl, left, top, right, bottom)){
+		return this.getContainingNode(left, top, right, bottom, node.tl);
+	} else if(isInNode(node.tr, left, top, right, bottom)){
+		return this.getContainingNode(left, top, right, bottom, node.tr);
+	} else if(isInNode(node.bl, left, top, right, bottom)){
+		return this.getContainingNode(left, top, right, bottom, node.bl);
+	} else if(isInNode(node.br, left, top, right, bottom)){
+		return this.getContainingNode(left, top, right, bottom, node.br);
+	} else if(isInNode(node, left, top, right, bottom)){
+		return node;
+	}*/
+};
+
+Quadtree.prototype.minimumSize = 3000;
+Quadtree.prototype.getInteractableObjects = function(left, top, right, bottom){
+	var self = this,
+		minimumSize = this.minimumSize,
+		tl = this.getContainingNode(left, top, left + 1, top + 1),
+		tr,
+		bl,
+		br,
+		objectsList = tl ? [tl.getObjects()] : [],
+		ancestor;
+
+	function addAncestorElements(left, top, right, bottom){
+		var ancestor = self.getContainingNode(left, top, right, bottom);
+		if(ancestor && !~objectsList.indexOf(ancestor.objects)) objectsList.push(ancestor.objects);
+	}
+
+	if(!tl || tl.right < right){
+		tr = this.getContainingNode(right - 1, top, right, top + 1);
+		if(tr) objectsList.push(tr.getObjects());
+		else tr = tl;
+	} else {
+		tr = tl;
+	}
+
+	if(!tl || tl.bottom < bottom){
+		bl = this.getContainingNode(left, bottom - 1, left + 1, bottom);
+		if(bl) objectsList.push(bl.getObjects());
+		else bl = tl;
+	} else {
+		bl = tl;
+	}
+
+	if(!tr || tr.bottom < bottom){
+		if(!bl || bl.right < right){
+			br = this.getContainingNode(right - 1, bottom - 1, right, bottom);
+			if(br) objectsList.push(br.getObjects());
+			else br = bl;
+		} else {
+			br = bl;
+		}
+	} else {
+		br = tr;
+	}
+	
+	if(tl !== tr) addAncestorElements(left, top, right, top + 1);
+	if(tr !== br) addAncestorElements(right - 1, top, right, bottom);
+	if(br !== bl) addAncestorElements(left, bottom - 1, right, bottom);
+	if(bl !== tl) addAncestorElements(left, top, left + 1, bottom);
+		
+	// Intersections towards top left
+	if(tl){
+		if((left - minimumSize) < tl.left){
+			addAncestorElements(left - minimumSize, top, left + 1, top + 1);
+		}
+
+		if((top - minimumSize) < tl.top){
+			addAncestorElements(left, top - minimumSize, left + 1, top + 1);
+		}
+	}
+	
+	// Intersections towards top right
+	if(tr){
+		if(tr !== tl && (top - minimumSize) < tr.top){
+			addAncestorElements(right - 1, top - minimumSize, right, top + 1);
+		}
+
+		if((right + minimumSize) > tr.right){
+			addAncestorElements(right - 1, top, right + minimumSize, top + 1);
+		}
+	}
+
+	// Intersections towards bottom right
+	if(br){
+		if(br !== tr && (right + minimumSize) > br.right){
+			addAncestorElements(right - 1, bottom - 1, right + minimumSize, bottom);
+		}
+
+		if((bottom + minimumSize) > br.bottom){
+			addAncestorElements(right - 1, bottom - 1, right, bottom + minimumSize);
+		}
+	}
+
+	// Intersections towards bottom left
+	if(bl){
+		if(bl !== br && (bottom + minimumSize) > bl.bottom){
+			addAncestorElements(left, bottom - 1, left + 1, bottom + minimumSize);
+		}
+
+		if(bl !== tl && (left - minimumSize) < bl.left){
+			addAncestorElements(left - minimumSize, bottom - 1, left + 1, bottom);
+		}
+	}
+
+	return Array.prototype.concat.apply([], objectsList);
+};
+
 Quadtree.prototype.getObjects = function(left, top, width, height){
-	if(left){
-		return this.top.getInteractableObjects(left, top, width, height);
+	if(left !== void 0){
+		var bottom = top + height,
+			right = left + width,
+			rectangles = this.getInteractableObjects(left, top, right, bottom),
+			rectangleIndex = rectangles.length,
+			result = [],
+			rectangle;
+
+		while(rectangleIndex--){
+			rectangle = rectangles[rectangleIndex];
+			
+			// If there is intersection along the y-axis
+			if(	(top <= rectangle.top ?
+					(bottom >= rectangle.top) :
+					(rectangle.bottom >= top)) && 
+				// And if there is intersection along the x-axis
+				(left <= rectangle.left ? 
+					(right >= rectangle.left) :
+					(rectangle.right >= left))){
+
+				
+				result.push(rectangle);
+			}
+		}
+		
+		return result;
 	}
 
 	return this.top.getObjects();
@@ -114,32 +288,4 @@ Quadtree.prototype.prune = function(left, top, width, height){
 	}
 	
 	return rejectedObjects;
-};
-
-
-// Checks for collisions against a quadree
-Quadtree.prototype.hasObject = function(left, top, width, height){
-	var rectangles = this.top.getInteractableObjects(left, top, width, height),
-		length = rectangles.length,
-		index = 0,
-		rectangle;
-
-	for(; index < length; index++){
-		rectangle = rectangles[index];
-		
-		// If there is intersection along the y-axis
-		if((top < rectangle.top ?
-			((top + height) > rectangle.top) :
-			((rectangle.top + rectangle.height) > top)) && 
-				// And if there is intersection along the x-axis
-				(left < rectangle.left ?
-					((left + width) > rectangle.left) :
-					((rectangle.left + rectangle.width) > left))){
-			
-			// Then we have a collision
-			return rectangle;
-		}
-	}
-	
-	return false;
 };
