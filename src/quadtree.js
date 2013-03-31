@@ -35,7 +35,6 @@ var Quadtree = module.exports = function(width, height){
 		this.width = width;
 		this.height = height? height : width;
 	}
-	window.q = this;
 	
 	this.reset();
 };
@@ -50,6 +49,7 @@ Quadtree.getApi = function(quadtree){
 	api.insert = quadtree.insert.bind(quadtree);
 	api.reset = quadtree.reset.bind(quadtree);
 	api.getObjects = quadtree.getObjects.bind(quadtree);
+	api.get = api.getObjects; // alias
 	api.prune = quadtree.prune.bind(quadtree);
 
 	return api;
@@ -65,7 +65,6 @@ Quadtree.prototype.reset = function(x, y){
 	var negHalfWidth = -(this.width / 2);
 	var negHalfHeight = -(this.height / 2);
 	this.top = new Node(x, y, this.width, this.height);
-//	this.top = new Node(x + negHalfWidth, y + negHalfHeight, this.width, this.height);
 };
 
 Quadtree.prototype.insert = function(obj){
@@ -107,22 +106,6 @@ Quadtree.prototype.getContainingNode = function(left, top, right, bottom, node){
 	}
 
 	return getContainingNodeHelper(left, top, right, bottom, this.top);
-/*
-	node = node || this.top;
-	if(!node.tl) return node;
-
-	// If area fits in any node, recurse down the tree
-	if(isInNode(node.tl, left, top, right, bottom)){
-		return this.getContainingNode(left, top, right, bottom, node.tl);
-	} else if(isInNode(node.tr, left, top, right, bottom)){
-		return this.getContainingNode(left, top, right, bottom, node.tr);
-	} else if(isInNode(node.bl, left, top, right, bottom)){
-		return this.getContainingNode(left, top, right, bottom, node.bl);
-	} else if(isInNode(node.br, left, top, right, bottom)){
-		return this.getContainingNode(left, top, right, bottom, node.br);
-	} else if(isInNode(node, left, top, right, bottom)){
-		return node;
-	}*/
 };
 
 Quadtree.prototype.minimumSize = 3000;
