@@ -17,8 +17,8 @@ var objs = tree.get(0, 0, 10, 10);
 console.log(objs[0] === myBox); // outputs true 
 ```
 ## Use
-For plain JavaScript applications, use the [dist/quadtree.js](https://raw.github.com/ozanturgut/giant-quadtree/master/dist/quadtree.js), which will inject the Quadtree object to the global
-scope. If you're using NodeJS (or any system that uses the export/require pattern), use [dist/quadtree-module.js](https://raw.github.com/ozanturgut/giant-quadtree/master/dist/quadtree-module.js), 
+For plain JavaScript applications, use the [dist/quadtree.js](https://raw.github.com/oztu/giant-quadtree/master/dist/quadtree.js), which will inject the Quadtree object to the global
+scope. If you're using NodeJS (or any system that uses the export/require pattern), use [dist/quadtree-module.js](https://raw.github.com/oztu/giant-quadtree/master/dist/quadtree-module.js), 
 as it exports the Quadtree object.
 
 ## API
