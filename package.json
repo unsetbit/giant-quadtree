@@ -1,6 +1,6 @@
 {
   "name": "giant-quadtree",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Infinite 2D collision detection",
   "main": "index.js",
   "dependencies": {},
@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ozanturgut/giant-quadtree.git"
+    "url": "https://github.com/oztu/giant-quadtree.git"
   },
   "keywords": [],
   "author": {
@@ -27,7 +27,7 @@
   "licenses": [
     {
       "type": "Apache License 2.0",
-      "url": "https://github.com/ozanturgut/quadtree/blob/master/LICENSE-APACHE2"
+      "url": "https://github.com/oztu/giant-quadtree/blob/master/LICENSE-APACHE2"
     }
   ]
 }
