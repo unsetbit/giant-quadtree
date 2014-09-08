@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - quadtree.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>quadtree.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">55.48</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">275</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">140.92</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">2.33</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+var TreeNode = require(&#039;./node&#039;);
+
+/* Quadtree by Ozan Turgut (ozanturgut@gmail.com)
+
+   A Quadtree is a structure for managing many nodes interacting in space by
+   organizing them within a tree, where each node contains elements which may
+   interact with other elements within the node. This is particularly useful in
+   collision detection, in which a brute-force algorithm requires the checking of
+   every element against every other element, regardless of their distance in space.
+
+   This quadtree handles object in 2d space by their bounding boxes. It splits
+   a node once it exceeds the object limit per-node. When a node is split, it&#039;s
+   contents are divied up in to 4 smaller nodes to fulfill the per-node object limit.
+   Nodes are infinitely divisible.
+
+   If an object is inserted which exceeds the bounds of this quadtree, the quadtree
+   will grow in the direction the object was inserted in order to encapsulate it. This is
+   similar to a node split, except in this case we create a parent node and assign the existing
+   quadtree as a quadrant within it. This allows the quadtree to contain any object, regardless of
+   its position in space.
+
+   One function is exported which creates a quadtree given a width and height.
+
+   The quadtree api has two methods:
+
+   insert(bounds)
+   		Inserts a bounding box (it should contain an left, top, width, and height property).
+
+   	retrieve(bounds)
+   		Retrieves a list of bounding boxes that share a node with the given bounds object.
+*/
+
+var Quadtree = module.exports = function(width, height){
+	if(width){
+		this.width = width;
+		this.height = height? height : width;
+	}
+	
+	this.reset();
+};
+
+Quadtree.create = function(width, height){
+	var quadtree = new Quadtree(width, height);
+	return Quadtree.getApi(quadtree);
+};
+
+Quadtree.getApi = function(quadtree){
+	var api = {};
+	api.insert = quadtree.insert.bind(quadtree);
+	api.reset = quadtree.reset.bind(quadtree);
+	api.getObjects = quadtree.getObjects.bind(quadtree);
+	api.get = api.getObjects; // alias
+	api.prune = quadtree.prune.bind(quadtree);
+
+	return api;
+};
+
+Quadtree.prototype.width = 10000;
+Quadtree.prototype.height = 10000;
+
+Quadtree.prototype.reset = function(x, y){
+	x = x || 0;
+	y = y || 0;
+
+	this.top = new TreeNode(x, y, this.width, this.height);
+};
+
+Quadtree.prototype.insert = function(obj){
+	this.top = this.top.insert(obj);
+};
+
+/*
+function isInNode(node, left, top, right, bottom){
+	return node.left &lt;= left &amp;&amp; node.top &lt;= top &amp;&amp; node.right &gt;= right &amp;&amp; node.bottom &gt;= bottom;
+}
+*/
+
+function getContainingNodeHelper(left, top, right, bottom, node){
+	if(!node.tl) return node;
+
+	if(left &lt; node.tr.left){
+		if(right &lt; node.tr.left){
+			if(bottom &lt; node.bl.top){
+				return getContainingNodeHelper(left, top, right, bottom, node.tl);
+			} else if(top &gt; node.bl.top) {
+				return getContainingNodeHelper(left, top, right, bottom, node.bl);
+			}
+		}
+	} else {
+		if(bottom &lt; node.br.top){
+			return getContainingNodeHelper(left, top, right, bottom, node.tr);
+		} else if(top &gt; node.br.top) {
+			return getContainingNodeHelper(left, top, right, bottom, node.br);
+		}
+	}
+
+	return node;
+}
+
+Quadtree.prototype.getContainingNode = function(left, top, right, bottom){
+	if(left &lt; this.top.left || 
+		top &lt; this.top.top || 
+		right &gt; this.top.right || 
+		bottom &gt; this.top.bottom){
+		return;	
+	}
+
+	return getContainingNodeHelper(left, top, right, bottom, this.top);
+};
+
+Quadtree.prototype.minimumSize = 3000;
+Quadtree.prototype.getInteractableObjects = function(left, top, right, bottom){
+	var self = this,
+		minimumSize = this.minimumSize,
+		tl = this.getContainingNode(left, top, left + 1, top + 1),
+		tr,
+		bl,
+		br,
+		objectsList = tl ? [tl.getObjects()] : [];
+
+	function addAncestorElements(left, top, right, bottom){
+		var ancestor = self.getContainingNode(left, top, right, bottom);
+		if(ancestor &amp;&amp; !~objectsList.indexOf(ancestor.objects)) objectsList.push(ancestor.objects);
+	}
+
+	if(!tl || tl.right &lt; right){
+		tr = this.getContainingNode(right - 1, top, right, top + 1);
+		if(tr) objectsList.push(tr.getObjects());
+		else tr = tl;
+	} else {
+		tr = tl;
+	}
+
+	if(!tl || tl.bottom &lt; bottom){
+		bl = this.getContainingNode(left, bottom - 1, left + 1, bottom);
+		if(bl) objectsList.push(bl.getObjects());
+		else bl = tl;
+	} else {
+		bl = tl;
+	}
+
+	if(!tr || tr.bottom &lt; bottom){
+		if(!bl || bl.right &lt; right){
+			br = this.getContainingNode(right - 1, bottom - 1, right, bottom);
+			if(br) objectsList.push(br.getObjects());
+			else br = bl;
+		} else {
+			br = bl;
+		}
+	} else {
+		br = tr;
+	}
+	
+	if(tl !== tr) addAncestorElements(left, top, right, top + 1);
+	if(tr !== br) addAncestorElements(right - 1, top, right, bottom);
+	if(br !== bl) addAncestorElements(left, bottom - 1, right, bottom);
+	if(bl !== tl) addAncestorElements(left, top, left + 1, bottom);
+		
+	// Intersections towards top left
+	if(tl){
+		if((left - minimumSize) &lt; tl.left){
+			addAncestorElements(left - minimumSize, top, left + 1, top + 1);
+		}
+
+		if((top - minimumSize) &lt; tl.top){
+			addAncestorElements(left, top - minimumSize, left + 1, top + 1);
+		}
+	}
+	
+	// Intersections towards top right
+	if(tr){
+		if(tr !== tl &amp;&amp; (top - minimumSize) &lt; tr.top){
+			addAncestorElements(right - 1, top - minimumSize, right, top + 1);
+		}
+
+		if((right + minimumSize) &gt; tr.right){
+			addAncestorElements(right - 1, top, right + minimumSize, top + 1);
+		}
+	}
+
+	// Intersections towards bottom right
+	if(br){
+		if(br !== tr &amp;&amp; (right + minimumSize) &gt; br.right){
+			addAncestorElements(right - 1, bottom - 1, right + minimumSize, bottom);
+		}
+
+		if((bottom + minimumSize) &gt; br.bottom){
+			addAncestorElements(right - 1, bottom - 1, right, bottom + minimumSize);
+		}
+	}
+
+	// Intersections towards bottom left
+	if(bl){
+		if(bl !== br &amp;&amp; (bottom + minimumSize) &gt; bl.bottom){
+			addAncestorElements(left, bottom - 1, left + 1, bottom + minimumSize);
+		}
+
+		if(bl !== tl &amp;&amp; (left - minimumSize) &lt; bl.left){
+			addAncestorElements(left - minimumSize, bottom - 1, left + 1, bottom);
+		}
+	}
+
+	return Array.prototype.concat.apply([], objectsList);
+};
+
+Quadtree.prototype.getObjects = function(left, top, width, height){
+	if(left !== void 0){
+		var bottom = top + height,
+			right = left + width,
+			rectangles = this.getInteractableObjects(left, top, right, bottom),
+			rectangleIndex = rectangles.length,
+			result = [],
+			rectangle;
+
+		while(rectangleIndex--){
+			rectangle = rectangles[rectangleIndex];
+			
+			// If there is intersection along the y-axis
+			if(	(top &lt;= rectangle.top ?
+					(bottom &gt;= rectangle.top) :
+					(rectangle.bottom &gt;= top)) &amp;&amp; 
+				// And if there is intersection along the x-axis
+				(left &lt;= rectangle.left ? 
+					(right &gt;= rectangle.left) :
+					(rectangle.right &gt;= left))){
+
+				
+				result.push(rectangle);
+			}
+		}
+		
+		return result;
+	}
+
+	return this.top.getObjects();
+};
+
+Quadtree.prototype.prune = function(left, top, width, height){
+	var right = left + width,
+		bottom = top + height,
+		candidate,
+		rejectedObjects = [],
+		keptObjects = [];
+
+	var objects = this.top.getObjects(),
+		index = 0,
+		length = objects.length;
+
+	for(; index &lt; length; index++){
+		candidate = objects[index];
+
+		if(	candidate.left &lt; left || 
+			candidate.top &lt; top || 
+			(candidate.left + candidate.width) &gt; right ||
+			(candidate.top + candidate.height) &gt; bottom){
+			rejectedObjects.push(candidate);
+		} else {
+			keptObjects.push(candidate);
+		}
+	}
+	if(keptObjects.length){
+		this.reset(keptObjects[0].left, keptObjects[0].top);
+		index = 0;
+		length = keptObjects.length;
+		for(; index &lt; length; index++){
+			this.insert(keptObjects[index]);
+		}
+	} else {
+		this.reset();
+	}
+	
+	return rejectedObjects;
+};</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

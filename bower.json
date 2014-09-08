@@ -1,0 +1,38 @@
+{
+  "name": "giant-quadtree",
+  "version": "0.2.0",
+  "description": "Infinite 2D collision detection",
+  "keywords": [
+    "quadtree",
+    "collision detection",
+    "giant quadtree"
+  ],
+  "main": [
+    "dist/GiantQuadtree.js"
+  ],
+  "authors": [
+    "Ozan Turgut <ozanturgut@gmail.com>"
+  ],
+  "moduleType": [
+    "amd",
+    "node",
+    "globals"
+  ],
+  "license": "APACHE 2",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "example",
+    "src",
+    "dev",
+    "build",
+    "package.json",
+    "gulpfile.js",
+    "package.json"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:oztu/giant-quadtree.git"
+  }
+}

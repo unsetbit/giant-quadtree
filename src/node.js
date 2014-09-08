@@ -1,3 +1,5 @@
+'use strict';
+
 module.exports = Node;
 
 function Node(left, top, width, height, parent){

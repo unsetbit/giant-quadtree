@@ -1,4 +1,6 @@
-var Node = require("./Node.js");
+'use strict';
+
+var TreeNode = require('./node');
 
 /* Quadtree by Ozan Turgut (ozanturgut@gmail.com)
 
@@ -62,18 +64,18 @@ Quadtree.prototype.reset = function(x, y){
 	x = x || 0;
 	y = y || 0;
 
-	var negHalfWidth = -(this.width / 2);
-	var negHalfHeight = -(this.height / 2);
-	this.top = new Node(x, y, this.width, this.height);
+	this.top = new TreeNode(x, y, this.width, this.height);
 };
 
 Quadtree.prototype.insert = function(obj){
 	this.top = this.top.insert(obj);
 };
 
+/*
 function isInNode(node, left, top, right, bottom){
 	return node.left <= left && node.top <= top && node.right >= right && node.bottom >= bottom;
-};
+}
+*/
 
 function getContainingNodeHelper(left, top, right, bottom, node){
 	if(!node.tl) return node;
@@ -97,7 +99,7 @@ function getContainingNodeHelper(left, top, right, bottom, node){
 	return node;
 }
 
-Quadtree.prototype.getContainingNode = function(left, top, right, bottom, node){
+Quadtree.prototype.getContainingNode = function(left, top, right, bottom){
 	if(left < this.top.left || 
 		top < this.top.top || 
 		right > this.top.right || 
@@ -116,8 +118,7 @@ Quadtree.prototype.getInteractableObjects = function(left, top, right, bottom){
 		tr,
 		bl,
 		br,
-		objectsList = tl ? [tl.getObjects()] : [],
-		ancestor;
+		objectsList = tl ? [tl.getObjects()] : [];
 
 	function addAncestorElements(left, top, right, bottom){
 		var ancestor = self.getContainingNode(left, top, right, bottom);
@@ -240,7 +241,7 @@ Quadtree.prototype.prune = function(left, top, width, height){
 	var right = left + width,
 		bottom = top + height,
 		candidate,
-		rejectedObjects = [];
+		rejectedObjects = [],
 		keptObjects = [];
 
 	var objects = this.top.getObjects(),
